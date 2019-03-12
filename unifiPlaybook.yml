@@ -1,0 +1,59 @@
+---
+- hosts: UniFi
+  become: true
+  gather_facts: False
+  vars_prompt:
+  - name: sshUser
+    prompt: "Enter SSH username for instance"
+    private: no
+  - name: password
+    prompt: "Enter SSH Password"
+    private: no
+    default: "CHANGE THIS"
+  
+  
+  
+  pre_tasks:
+  - name: install python 2
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+  - setup:
+  
+  tasks:
+
+
+  - name: Move SSHD Config File
+    copy: 
+     src: /etc/ansible/sshd_config
+     dest: /etc/ssh/sshd_config
+     mode: u=rw,g=r,o=r
+     
+     
+  - name: Set up haveged and Swap File
+    script: /etc/ansible/unificommands.sh
+
+  - name: Install UniFi
+    apt: name=unifi state=present
+
+  - name: add user
+    user:
+      name: "{{ sshUser }}"
+      comment: UniFi Admin
+      group: sudo
+      password: "{{ password }}"
+
+
+  - name: add ufw ssh
+    ufw: rule=allow port=2222 proto=tcp
+  - name: add ufw set inform
+    ufw: rule=allow port=8080 proto=tcp
+  - name: add ufw https
+    ufw: rule=allow port=8443 proto=tcp
+  - name: add ufw 8880
+    ufw: rule=allow port=8880 proto=tcp
+  - name: add ufw 8843
+    ufw: rule=allow port=8843 proto=tcp
+  - name: add ufw 3478
+    ufw: rule=allow port=3478 proto=udp
+  - name: enable ufw
+    ufw: state=enabled policy=reject
+
